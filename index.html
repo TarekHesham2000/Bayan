@@ -12,25 +12,110 @@
 <meta property="og:image" content="logo-preview.png">
 <meta property="og:image:width" content="1200">
 <meta property="og:image:height" content="630">
-<link rel="icon" type="image/x-icon" href="favicon.ico">
-<link rel="icon" type="image/png" sizes="32x32" href="logo-32x32.png">
-
-<link rel="apple-touch-icon" sizes="180x180" href="apple-touch-icon.png">
-
-<meta property="og:image" content="logo-preview.png">
-<meta property="og:image:width" content="1200">
-<meta property="og:image:height" content="630">
 <meta name="description" content="منصة تعليمية إسلامية تفاعلية للشباب والأطفال - تحديات يومية، شجرة الأنبياء، أحاديث نبوية، ختمات قرآنية">
 <meta name="keywords" content="إسلام، قرآن، أحاديث، أنبياء، تحدي إسلامي، ختمة قرآنية، تعلم إسلامي">
 <meta property="og:title" content="بيان | Bayan | منصة التعلم الإسلامي التفاعلية">
 <meta property="og:description" content="رحلتك الإيمانية اليومية — تحديات، أنبياء، أحاديث وختمات قرآنية">
 <meta property="og:type" content="website">
+<meta property="og:url" content="https://bayan-app.com">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/babel-standalone/7.23.2/babel.min.js"></script>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+
+<!-- ═══ PWA — Dynamic Manifest (Blob) ═══ -->
+<script>
+(function() {
+  const manifest = {
+    name: "بيان — منصة التعلم الإسلامي",
+    short_name: "Bayan",
+    description: "رحلتك الإيمانية اليومية — تحديات، أنبياء، أحاديث وختمات قرآنية",
+    start_url: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    theme_color: "#0d1117",
+    background_color: "#0d1117",
+    lang: "ar",
+    dir: "rtl",
+    categories: ["education", "lifestyle"],
+    icons: [
+      { src: "logo.png",          sizes: "512x512", type: "image/png", purpose: "any maskable" },
+      { src: "apple-touch-icon.png", sizes: "180x180", type: "image/png" },
+      { src: "logo-32x32.png",    sizes: "32x32",  type: "image/png" }
+    ],
+    screenshots: [],
+    shortcuts: [
+      { name: "التحدي اليومي", url: "/?tab=quest",    description: "افتح تحدي اليوم" },
+      { name: "خريطة الأنبياء", url: "/?tab=prophets", description: "استكشف خريطة الأنبياء" }
+    ]
+  };
+  const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
+  const url  = URL.createObjectURL(blob);
+  const link = document.createElement('link');
+  link.rel   = 'manifest';
+  link.href  = url;
+  document.head.appendChild(link);
+
+  // ─── Service Worker Registration ───
+  if ('serviceWorker' in navigator) {
+    const swCode = `
+const CACHE = 'bayan-v1';
+const ASSETS = [
+  '/',
+  '/index.html',
+  '/style.css',
+  '/logo.png',
+  'https://fonts.googleapis.com/css2?family=Amiri:wght@400;700&family=Cairo:wght@300;400;600;700;900&display=swap',
+  'https://cdnjs.cloudflare.com/ajax/libs/react/18.2.0/umd/react.production.min.js',
+  'https://cdnjs.cloudflare.com/ajax/libs/react-dom/18.2.0/umd/react-dom.production.min.js'
+];
+self.addEventListener('install', e => {
+  e.waitUntil(
+    caches.open(CACHE).then(c => c.addAll(ASSETS).catch(() => {}))
+  );
+  self.skipWaiting();
+});
+self.addEventListener('activate', e => {
+  e.waitUntil(
+    caches.keys().then(keys =>
+      Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))
+    )
+  );
+  self.clients.claim();
+});
+self.addEventListener('fetch', e => {
+  if (e.request.method !== 'GET') return;
+  e.respondWith(
+    caches.match(e.request).then(cached => {
+      if (cached) return cached;
+      return fetch(e.request).then(resp => {
+        if (resp && resp.status === 200 && resp.type !== 'opaque') {
+          const clone = resp.clone();
+          caches.open(CACHE).then(c => c.put(e.request, clone));
+        }
+        return resp;
+      }).catch(() => cached);
+    })
+  );
+});
+`;
+    const swBlob = new Blob([swCode], { type: 'application/javascript' });
+    const swUrl  = URL.createObjectURL(swBlob);
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register(swUrl)
+        .then(reg => console.log('[Bayan SW] Registered:', reg.scope))
+        .catch(err => console.warn('[Bayan SW] Error:', err));
+    });
+  }
+})();
+</script>
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="بيان">
+<meta name="theme-color" content="#0d1117">
 </head>
 <body>
 <div id="root"></div>
@@ -205,7 +290,7 @@ const DATA = {
 // ═══════════════════════════════════════════════
 //  CONTROLLER — LocalStorage & Logic
 // ═══════════════════════════════════════════════
-const LS_KEY = "noor_progress_v3";
+const LS_KEY = "bayan_progress_v3";
 
 function loadProgress() {
   try {
@@ -230,7 +315,7 @@ function saveProgress(data) {
 function generateShareText(progress) {
   const rank = getRank(progress.xp);
   const pct = Math.round((progress.completedDays.length / 30) * 100);
-  return `🌟 أنا في رحلتي الإيمانية مع منصة بيان | Bayan!\n✅ أكملت ${progress.completedDays.length}/30 يوماً\n🏅 رتبتي: ${rank.icon} ${rank.title}\n⭐ نقاطي: ${progress.xp} XP (${pct}%)\n\nانضم معي في تحدي تطوير النفس!\n#نور_الإسلام #تحدي_30_يوم`;
+  return `🌟 أنا في رحلتي الإيمانية مع منصة بيان | Bayan!\n✅ أكملت ${progress.completedDays.length}/30 يوماً\n🏅 رتبتي: ${rank.icon} ${rank.title}\n⭐ نقاطي: ${progress.xp} XP (${pct}%)\n\nانضم معي في تحدي تطوير النفس!\n#بيان #تحدي_30_يوم #bayan_app`;
 }
 
 function useProgress() {
@@ -439,7 +524,11 @@ function HomeHub({ setTab, progress }) {
         ))}
       </div>
 
-      <div className="ad-placeholder">📢 مساحة إعلانية — Google AdSense (728×90)</div>
+      <div className="ad-placeholder">
+        {/* ── AdSense: HomeHub Rectangle (300×250) ── */}
+        {/* <ins className="adsbygoogle" style={{display:'inline-block',width:'300px',height:'250px'}} data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="HOME_RECT_SLOT_ID"></ins> */}
+        📢 Google AdSense — HomeHub (300×250)
+      </div>
 
       <div style={{ textAlign:'center', marginTop:40, color:'var(--text-muted)', fontSize:14 }}>
         <div style={{ fontSize:32, marginBottom:8 }}>✨</div>
@@ -536,14 +625,100 @@ function QuestTab({ progress, completeDay, share }) {
 }
 
 // ── Prophets Tab — Interactive Map ──
+// Map coordinate data for each location (relative to a Middle-East focused map)
+const MAP_COORDS = {
+  mecca:   { top:'62%', left:'56%' },
+  madinah: { top:'55%', left:'53%' },
+  quds:    { top:'42%', left:'47%' },
+  sham:    { top:'35%', left:'46%' },
+  egypt:   { top:'47%', left:'39%' },
+  iraq:    { top:'38%', left:'56%' },
+  arabia:  { top:'58%', left:'50%' },
+};
+
+function ProphetsMap({ locations, onSelect }) {
+  const [hovered, setHovered] = useState(null);
+  return (
+    <div className="prophet-visual-map-wrap">
+      {/* SVG World/Middle East region map background */}
+      <svg className="prophet-map-svg" viewBox="0 0 800 500" xmlns="http://www.w3.org/2000/svg">
+        <defs>
+          <radialGradient id="mapGrad" cx="50%" cy="50%" r="60%">
+            <stop offset="0%" stopColor="#1a2535"/>
+            <stop offset="100%" stopColor="#0d1117"/>
+          </radialGradient>
+          <filter id="glow">
+            <feGaussianBlur stdDeviation="3" result="coloredBlur"/>
+            <feMerge><feMergeNode in="coloredBlur"/><feMergeNode in="SourceGraphic"/></feMerge>
+          </filter>
+        </defs>
+        {/* Ocean background */}
+        <rect width="800" height="500" fill="url(#mapGrad)" rx="12"/>
+        {/* Simplified landmasses */}
+        {/* Africa */}
+        <path d="M 50 100 L 200 80 L 260 120 L 290 200 L 280 320 L 240 400 L 180 450 L 120 440 L 80 380 L 60 280 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1" opacity="0.7"/>
+        {/* Middle East / Arabian Peninsula */}
+        <path d="M 290 120 L 380 100 L 460 120 L 500 160 L 520 220 L 490 280 L 440 320 L 390 350 L 350 330 L 320 280 L 290 200 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1" opacity="0.7"/>
+        {/* Mesopotamia / Iraq region */}
+        <path d="M 440 100 L 540 90 L 580 130 L 570 190 L 520 220 L 480 210 L 460 160 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1" opacity="0.7"/>
+        {/* Iran / Persia */}
+        <path d="M 540 90 L 660 80 L 700 130 L 680 200 L 620 230 L 570 190 L 580 130 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1" opacity="0.7"/>
+        {/* Levant / Sham */}
+        <path d="M 290 120 L 360 110 L 390 140 L 380 180 L 340 200 L 300 180 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1.5" opacity="0.8"/>
+        {/* Egypt / Sinai */}
+        <path d="M 230 150 L 310 140 L 330 180 L 310 230 L 270 250 L 230 220 L 210 180 Z" fill="#1e3a2e" stroke="#2a9d8f" strokeWidth="1.5" opacity="0.8"/>
+        {/* Nile suggestion */}
+        <path d="M 260 170 L 250 250 L 240 330 L 230 420" stroke="#4dd0c4" strokeWidth="1.5" fill="none" opacity="0.4" strokeDasharray="4,3"/>
+        {/* Euphrates/Tigris suggestion */}
+        <path d="M 460 110 L 470 160 L 490 200 L 500 240" stroke="#4dd0c4" strokeWidth="1.5" fill="none" opacity="0.4" strokeDasharray="4,3"/>
+        {/* Mediterranean sea label */}
+        <text x="270" y="140" fill="#4dd0c4" fontSize="9" opacity="0.5" fontFamily="Cairo,sans-serif" textAnchor="middle">البحر المتوسط</text>
+        {/* Arabian sea label */}
+        <text x="520" y="360" fill="#4dd0c4" fontSize="9" opacity="0.5" fontFamily="Cairo,sans-serif" textAnchor="middle">بحر العرب</text>
+        {/* Red sea */}
+        <path d="M 310 230 L 340 280 L 360 340 L 380 380" stroke="#4dd0c4" strokeWidth="8" fill="none" opacity="0.15"/>
+        <text x="355" y="310" fill="#4dd0c4" fontSize="8" opacity="0.5" fontFamily="Cairo,sans-serif" textAnchor="middle" transform="rotate(35,355,310)">البحر الأحمر</text>
+      </svg>
+
+      {/* Location pins overlay */}
+      {locations.map((loc) => {
+        const coords = MAP_COORDS[loc.id] || { top:'50%', left:'50%' };
+        const isHov = hovered === loc.id;
+        return (
+          <div
+            key={loc.id}
+            className={`prophet-map-pin ${isHov ? 'hovered' : ''}`}
+            style={{ top: coords.top, left: coords.left }}
+            onClick={() => onSelect(loc.id)}
+            onMouseEnter={() => setHovered(loc.id)}
+            onMouseLeave={() => setHovered(null)}
+          >
+            <div className="map-pin-icon">{loc.icon}</div>
+            <div className="map-pin-label">{loc.label}</div>
+            <div className="map-pin-count">{loc.prophets.length} أنبياء</div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 function ProphetsTab() {
   const [viewMode, setViewMode] = useState('map'); // 'map' | 'grid'
   const [selectedLocation, setSelectedLocation] = useState(null);
   const [selected, setSelected] = useState(null);
+  const [mapFilter, setMapFilter] = useState('teal'); // 'teal' | 'gold' | 'sepia' | 'night'
 
   const prophet = selected ? DATA.prophets.find(p => p.id === selected) : null;
   const locationData = selectedLocation ? DATA.prophetLocations.find(l => l.id === selectedLocation) : null;
   const locationProphets = locationData ? locationData.prophets.map(id => DATA.prophets.find(p => p.id === id)).filter(Boolean) : [];
+
+  const filterStyles = {
+    teal:  'hue-rotate(160deg) saturate(1.4) brightness(1.05)',
+    gold:  'sepia(0.5) saturate(1.8) hue-rotate(10deg) brightness(1.1)',
+    sepia: 'sepia(0.8) saturate(1.2) brightness(0.95)',
+    night: 'hue-rotate(220deg) saturate(0.9) brightness(0.8)',
+  };
 
   return (
     <div className="page animate-in">
@@ -552,13 +727,19 @@ function ProphetsTab() {
         <div className="section-desc">اختر منطقةً لتعرف أنبياء كل أرض، أو تصفّح الشجرة الكاملة</div>
       </div>
 
-      <div className="quran-subnav" style={{ marginBottom:28 }}>
+      <div className="quran-subnav" style={{ marginBottom:20 }}>
         <button className={`quran-subnav-btn ${viewMode==='map'?'active':''}`} onClick={() => setViewMode('map')}>🗺️ خريطة الأنبياء</button>
         <button className={`quran-subnav-btn ${viewMode==='grid'?'active':''}`} onClick={() => setViewMode('grid')}>🌳 شجرة الأنبياء</button>
       </div>
 
       {viewMode === 'map' && (
         <div>
+          {/* CSS Filter Controls */}
+
+
+  
+
+          {/* Card grid below map */}
           <div className="prophet-map-grid">
             {DATA.prophetLocations.map((loc, i) => (
               <div key={loc.id} className="prophet-map-card" style={{ animationDelay:`${i*0.08}s` }} onClick={() => setSelectedLocation(loc.id)}>
@@ -568,6 +749,7 @@ function ProphetsTab() {
               </div>
             ))}
           </div>
+
           {selectedLocation && locationData && (
             <Modal title={`${locationData.icon} ${locationData.label}`} subtitle="أنبياء هذه الأرض المباركة" onClose={() => setSelectedLocation(null)} wide>
               <div className="prophet-loc-grid">
@@ -790,19 +972,39 @@ function QuranTab({ progress, addKhatma, updateKhatmaPage, renameKhatma, deleteK
 // ── Static Pages (for AdSense) ──
 function PrivacyPage({ onClose }) {
   return (
-    <Modal title="سياسة الخصوصية" subtitle="Privacy Policy" onClose={onClose} wide>
+    <Modal title="سياسة الخصوصية" subtitle="Privacy Policy — بيان | Bayan" onClose={onClose} wide>
       <div className="static-page-content">
-        <p>آخر تحديث: يناير ٢٠٢٥</p>
-        <h3>١. البيانات التي نجمعها</h3>
-        <p>لا تجمع منصة بيان أي بيانات شخصية. تُحفظ جميع بيانات التقدم (نقاط XP، الختمات، الأيام المنجزة) محلياً على جهازك عبر localStorage ولا تُرسل إلى أي خادم.</p>
-        <h3>٢. ملفات تعريف الارتباط (Cookies)</h3>
-        <p>قد تستخدم إعلانات Google AdSense ملفات تعريف الارتباط لتخصيص الإعلانات. يمكنك إدارة هذه الإعدادات عبر إعدادات متصفحك.</p>
-        <h3>٣. خدمات الطرف الثالث</h3>
-        <p>نستخدم Google AdSense لعرض الإعلانات. تخضع هذه الخدمة لسياسة خصوصية Google المتاحة على موقعهم الرسمي.</p>
-        <h3>٤. الأطفال</h3>
-        <p>منصتنا مناسبة لجميع الأعمار. لا نجمع معلومات من الأطفال دون موافقة أولياء الأمور.</p>
-        <h3>٥. التواصل</h3>
-        <p>لأي استفسارات تتعلق بالخصوصية، تواصل معنا عبر صفحة "اتصل بنا".</p>
+        <p style={{ color:'var(--text-muted)', fontSize:13 }}>آخر تحديث: فبراير ٢٠٢٥ | bayan-app.com</p>
+
+        <h3>١. مقدمة</h3>
+        <p>مرحباً بك في منصة <strong>بيان | Bayan</strong> (المتاحة على <strong>bayan-app.com</strong>). نحن نحترم خصوصيتك ونلتزم بحماية بياناتك. توضّح هذه السياسة كيفية جمعنا للمعلومات واستخدامها وحمايتها.</p>
+
+        <h3>٢. البيانات التي نجمعها</h3>
+        <p>تُحفظ جميع بيانات تقدمك (نقاط XP، الختمات القرآنية، الأيام المنجزة، الشارات) <strong>محلياً على جهازك فقط</strong> عبر تقنية localStorage، ولا تُرسل إلى أي خادم خارجي ولا نمتلك أي قاعدة بيانات لمستخدمينا. لا نجمع أسماء أو عناوين بريد إلكتروني أو معلومات شخصية من تلقاء أنفسنا.</p>
+
+        <h3>٣. ملفات تعريف الارتباط (Cookies)</h3>
+        <p>تستخدم منصة بيان ملفات تعريف الارتباط (Cookies) للأغراض التالية:</p>
+        <ul style={{ paddingRight:20, lineHeight:2, color:'var(--text-light)' }}>
+          <li><strong>ملفات تعريف ضرورية:</strong> لحفظ تفضيلاتك وحالة جلستك على المتصفح.</li>
+          <li><strong>ملفات تعريف إعلانية (Google AdSense):</strong> تستخدم Google ملفات تعريف الارتباط DoubleClick لتقديم إعلانات ذات صلة بناءً على زيارات المستخدمين لهذا الموقع وللمواقع الأخرى على الإنترنت. يمكن للمستخدمين إلغاء تفعيل DoubleClick Cookie من خلال <a href="https://www.google.com/settings/ads" target="_blank" rel="noopener noreferrer" style={{ color:'var(--teal-glow)' }}>إعدادات الإعلانات</a>.</li>
+          <li><strong>ملفات تعريف تحليلية:</strong> قد نستخدم Google Analytics لفهم كيفية استخدام الزوار للموقع بشكل مجمّع وغير شخصي.</li>
+        </ul>
+        <p>يمكنك التحكم في ملفات تعريف الارتباط عبر إعدادات متصفحك أو من خلال زيارة <a href="https://www.aboutads.info" target="_blank" rel="noopener noreferrer" style={{ color:'var(--teal-glow)' }}>aboutads.info</a>.</p>
+
+        <h3>٤. الإعلانات (Google AdSense)</h3>
+        <p>نستخدم <strong>Google AdSense</strong> لعرض إعلانات على المنصة. قد تستخدم Google بيانات زياراتك لهذا الموقع والمواقع الأخرى لتخصيص الإعلانات المعروضة لك. تخضع هذه الخدمة لـ <a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer" style={{ color:'var(--teal-glow)' }}>سياسة خصوصية Google</a> و<a href="https://policies.google.com/technologies/ads" target="_blank" rel="noopener noreferrer" style={{ color:'var(--teal-glow)' }}>سياسة استخدام الإعلانات</a>.</p>
+
+        <h3>٥. مشاركة البيانات مع أطراف ثالثة</h3>
+        <p>لا نبيع ولا نؤجر ولا نشارك أي معلومات شخصية مع أطراف خارجية، باستثناء ما تتطلبه خدمات الإعلانات والتحليلات الموصوفة أعلاه.</p>
+
+        <h3>٦. حماية الأطفال (COPPA)</h3>
+        <p>منصة بيان مناسبة لجميع الأعمار. لا نجمع عن قصد أي معلومات شخصية من الأطفال دون سن 13 عاماً. إذا كنت تعتقد أن طفلاً قدّم معلومات شخصية، يرجى التواصل معنا فوراً لحذفها.</p>
+
+        <h3>٧. التغييرات على هذه السياسة</h3>
+        <p>نحتفظ بحق تعديل هذه السياسة في أي وقت. سيتم نشر التغييرات على هذه الصفحة مع تحديث تاريخ "آخر تحديث". استمرارك في استخدام المنصة بعد أي تعديل يُعدّ قبولاً للتغييرات.</p>
+
+        <h3>٨. التواصل</h3>
+        <p>لأي استفسارات تتعلق بسياسة الخصوصية، تواصل معنا على: <strong>contact@bayan-app.com</strong></p>
       </div>
     </Modal>
   );
@@ -810,48 +1012,162 @@ function PrivacyPage({ onClose }) {
 
 function AboutPage({ onClose }) {
   return (
-    <Modal title="من نحن" subtitle="About Noor Al Islam" onClose={onClose} wide>
+    <Modal title="من نحن" subtitle="About Bayan" onClose={onClose} wide>
       <div className="static-page-content">
-        <div style={{ textAlign:'center', padding:'20px 0', fontSize:48 }}>🌙</div>
+        <div style={{ textAlign:'center', padding:'20px 0' }}>
+          <div style={{ fontSize:52, marginBottom:8 }}>📖</div>
+          <div style={{ fontFamily:'Amiri,serif', fontSize:22, color:'var(--gold-light)', marginBottom:4 }}>بيان | Bayan</div>
+          <div style={{ color:'var(--text-muted)', fontSize:13 }}>منصة التعلم الإسلامي التفاعلية — bayan-app.com</div>
+        </div>
+
         <h3>رسالتنا</h3>
-        <p>منصة بيان هي منصة تعليمية إسلامية تفاعلية تهدف إلى مساعدة المسلمين على تعزيز إيمانهم من خلال تحديات يومية ممتعة وتعليم قرآني راقٍ.</p>
-        <h3>ما نقدمه</h3>
-        <p>تحدي الـ 30 يوم الإيماني، خريطة رحلة الأنبياء التفاعلية، محراب السنة النبوية بـ 30 حديثاً، ونظام متابعة الختمات القرآنية المتعددة.</p>
+        <p>منصة <strong>بيان</strong> هي منصة تعليمية إسلامية تفاعلية تهدف إلى مساعدة المسلمين في جميع أنحاء العالم على تعزيز إيمانهم وتطوير أنفسهم من خلال تحديات يومية ممتعة، وتعليم قرآني راقٍ، ومحتوى سنّوي موثّق.</p>
+
+        <h3>ما تقدمه المنصة</h3>
+        <p>تحتوي منصة بيان على أربعة أقسام رئيسية: <strong>تحدي الـ 30 يوم الإيماني</strong> بآيات قرآنية وتحديات عملية واختبارات تفاعلية، و<strong>خريطة رحلة الأنبياء</strong> التفاعلية مع 25 نبياً ورسولاً، و<strong>محراب السنة</strong> بـ 30 حديثاً نبوياً مختاراً مع شرح وتحدي عملي، و<strong>رحاب القرآن</strong> لمتابعة ختماتك المتعددة وتدبّر آيات الحكمة.</p>
+
+        <h3>نظام التقدم والرتب</h3>
+        <p>تمنحك المنصة نقاط XP مقابل كل إنجاز، وترتقي عبر 8 رتب من "مسلم مبتدئ" وصولاً إلى "الولي الصالح". يُحفظ تقدمك محلياً على جهازك ولا تحتاج لإنشاء حساب.</p>
+
         <h3>قيمنا</h3>
-        <p>نؤمن بأن التعلم الإسلامي يجب أن يكون سهلاً وممتعاً وعملياً. نسعى إلى تقديم محتوى دقيق وموثوق مبني على القرآن الكريم والسنة النبوية الشريفة.</p>
+        <p>نؤمن بأن التعلم الإسلامي يجب أن يكون سهلاً وممتعاً وعملياً. نحرص على تقديم محتوى دقيق وموثّق مبني على القرآن الكريم والسنة النبوية الشريفة، بعيداً عن الخلافات الفقهية.</p>
+
         <h3>التقنية</h3>
-        <p>المنصة مبنية بتقنية React.js وتعمل بالكامل في المتصفح دون الحاجة لتسجيل حساب أو اتصال بالإنترنت بعد التحميل الأول.</p>
+        <p>المنصة مبنية بتقنية React.js وتعمل بالكامل في المتصفح دون الحاجة لتسجيل حساب أو اتصال بالإنترنت بعد التحميل الأول. مفتوحة للجميع ومجانية تماماً.</p>
+
+        <div className="divider" />
+        <div style={{ textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
+          📧 contact@bayan-app.com &nbsp;|&nbsp; 🌐 bayan-app.com
+        </div>
       </div>
     </Modal>
   );
 }
 
 function ContactPage({ onClose }) {
-  const [sent, setSent] = useState(false);
+  const FORMSPREE_ID = 'YOUR_FORMSPREE_ID'; // ← استبدل بـ ID من formspree.io
+  const [status, setStatus] = useState('idle'); // idle | loading | success | error
+  const [form, setForm] = useState({ name: '', email: '', message: '' });
+  const [errors, setErrors] = useState({});
+
+  function validate() {
+    const e = {};
+    if (!form.email.trim()) e.email = 'البريد الإلكتروني مطلوب';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) e.email = 'بريد إلكتروني غير صحيح';
+    if (!form.message.trim()) e.message = 'الرسالة مطلوبة';
+    return e;
+  }
+
+  async function handleSubmit() {
+    const e = validate();
+    if (Object.keys(e).length > 0) { setErrors(e); return; }
+    setErrors({});
+    setStatus('loading');
+    try {
+      const res = await fetch(`https://formspree.io/f/${FORMSPREE_ID}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Accept': 'application/json' },
+        body: JSON.stringify({ name: form.name, email: form.email, message: form.message, _subject: 'رسالة جديدة من منصة بيان' })
+      });
+      if (res.ok) { setStatus('success'); }
+      else { setStatus('error'); }
+    } catch (_) {
+      setStatus('error');
+    }
+  }
+
+  function updateField(field, val) {
+    setForm(prev => ({ ...prev, [field]: val }));
+    if (errors[field]) setErrors(prev => ({ ...prev, [field]: null }));
+  }
+
   return (
-    <Modal title="اتصل بنا" subtitle="Contact Us" onClose={onClose}>
+    <Modal title="اتصل بنا" subtitle="Contact Bayan — نسعد بسماعك" onClose={onClose}>
       <div className="static-page-content">
-        {!sent ? (
-          <>
-            <p>نسعد بتلقي استفساراتك واقتراحاتك لتطوير المنصة:</p>
-            <div style={{ display:'flex', flexDirection:'column', gap:12, marginTop:16 }}>
-              <input className="khatma-input" type="text" placeholder="اسمك (اختياري)" />
-              <input className="khatma-input" type="email" placeholder="بريدك الإلكتروني" />
-              <textarea className="khatma-input" rows="4" placeholder="رسالتك..." style={{ resize:'vertical' }} />
-              <button className="btn-primary" onClick={() => setSent(true)}>📨 إرسال الرسالة</button>
-            </div>
-          </>
-        ) : (
-          <div style={{ textAlign:'center', padding:'30px 20px' }}>
-            <div style={{ fontSize:56, marginBottom:16 }}>✅</div>
-            <div style={{ fontSize:18, fontWeight:700, color:'var(--gold)', marginBottom:8 }}>شكراً لك!</div>
-            <div style={{ color:'var(--text-muted)' }}>تم استلام رسالتك وسنتواصل معك قريباً بإذن الله</div>
+        {status === 'success' ? (
+          <div className="contact-success">
+            <div className="contact-success-icon">✅</div>
+            <div className="contact-success-title">شكراً! وصلت رسالتك</div>
+            <div className="contact-success-sub">سنتواصل معك في أقرب وقت بإذن الله على <strong>{form.email}</strong></div>
+            <button className="btn-primary" style={{ marginTop:20 }} onClick={onClose}>إغلاق</button>
           </div>
+        ) : (
+          <>
+            <p style={{ marginBottom:20, color:'var(--text-muted)', fontSize:13 }}>
+              💬 اقتراح، سؤال، أو ملاحظة؟ نحن نسمعك! اكتب رسالتك وسنرد في أقرب وقت.
+            </p>
+
+            {/* Name */}
+            <div className="contact-field">
+              <label className="contact-label">👤 الاسم <span style={{ color:'var(--text-muted)' }}>(اختياري)</span></label>
+              <input
+                className={`khatma-input contact-input`}
+                type="text"
+                placeholder="مثال: محمد أحمد"
+                value={form.name}
+                onChange={e => updateField('name', e.target.value)}
+                disabled={status === 'loading'}
+              />
+            </div>
+
+            {/* Email */}
+            <div className="contact-field">
+              <label className="contact-label">📧 البريد الإلكتروني <span style={{ color:'#ef5350' }}>*</span></label>
+              <input
+                className={`khatma-input contact-input ${errors.email ? 'input-error' : ''}`}
+                type="email"
+                placeholder="example@email.com"
+                value={form.email}
+                onChange={e => updateField('email', e.target.value)}
+                disabled={status === 'loading'}
+                dir="ltr"
+              />
+              {errors.email && <div className="contact-error">⚠️ {errors.email}</div>}
+            </div>
+
+            {/* Message */}
+            <div className="contact-field">
+              <label className="contact-label">✏️ رسالتك <span style={{ color:'#ef5350' }}>*</span></label>
+              <textarea
+                className={`khatma-input contact-input contact-textarea ${errors.message ? 'input-error' : ''}`}
+                rows="5"
+                placeholder="اكتب رسالتك هنا... (اقتراح، استفسار، تقرير خطأ...)"
+                value={form.message}
+                onChange={e => updateField('message', e.target.value)}
+                disabled={status === 'loading'}
+              />
+              {errors.message && <div className="contact-error">⚠️ {errors.message}</div>}
+              <div style={{ textAlign:'left', fontSize:11, color:'var(--text-muted)', marginTop:4 }}>
+                {form.message.length} / 1000
+              </div>
+            </div>
+
+            {status === 'error' && (
+              <div className="contact-error-banner">
+                ❌ حدث خطأ في الإرسال، يرجى المحاولة مجدداً أو التواصل مباشرة على contact@bayan-app.com
+              </div>
+            )}
+
+            <button
+              className="btn-primary contact-send-btn"
+              onClick={handleSubmit}
+              disabled={status === 'loading'}
+            >
+              {status === 'loading' ? (
+                <span className="contact-spinner-wrap">
+                  <span className="contact-spinner" />
+                  جارٍ الإرسال...
+                </span>
+              ) : '📨 إرسال الرسالة'}
+            </button>
+          </>
         )}
+
         <div className="divider" />
-        <div style={{ textAlign:'center', color:'var(--text-muted)', fontSize:13 }}>
-          📧 noor@islamic-platform.com<br/>
-          🌐 https://noor-platform.com
+        <div className="contact-footer-info">
+          <a href="mailto:contact@bayan-app.com">📧 contact@bayan-app.com</a>
+          <span>•</span>
+          <span>🌐 bayan-app.com</span>
         </div>
       </div>
     </Modal>
@@ -880,18 +1196,35 @@ function Footer({ onNav }) {
   );
 }
 
-// ── Root App ──
 function App() {
   const [tab, setTab] = useState('home');
   const [modal, setModal] = useState(null); // 'privacy' | 'about' | 'contact'
+  const [installPrompt, setInstallPrompt] = useState(null);
+  const [installDone, setInstallDone] = useState(false);
   const { progress, completeDay, completeHadith, addKhatma, updateKhatmaPage, renameKhatma, deleteKhatma, share, toast } = useProgress();
 
   const rank = getRank(progress.xp);
 
   useEffect(() => {
-    const titles = { home:'بيان | الرئيسية', quest:'نور | التحدي اليومي', prophets:'نور | خريطة الأنبياء', sunnah:'نور | محراب السنة', quran:'نور | رحاب القرآن' };
-    document.title = titles[tab] || 'بيان';
+    const titles = { home:'بيان | الرئيسية', quest:'بيان | التحدي اليومي', prophets:'بيان | خريطة الأنبياء', sunnah:'بيان | محراب السنة', quran:'بيان | رحاب القرآن' };
+    document.title = titles[tab] || 'بيان | Bayan';
   }, [tab]);
+
+  // Capture the PWA install prompt event
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setInstallPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setInstallDone(true); setInstallPrompt(null); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  async function handleInstall() {
+    if (!installPrompt) return;
+    installPrompt.prompt();
+    const { outcome } = await installPrompt.userChoice;
+    if (outcome === 'accepted') setInstallDone(true);
+    setInstallPrompt(null);
+  }
 
   const tabs = [
     { id:'home',     label:'الرئيسية',  icon:'🏠' },
@@ -914,9 +1247,21 @@ function App() {
           <div className="nav-right">
             <div className="rank-badge" style={{ color: rank.color }}>{rank.icon} {rank.title}</div>
             <div className="xp-badge"><span className="xp-star">⭐</span>{progress.xp} XP</div>
+            {installPrompt && !installDone && (
+              <button className="pwa-install-btn" onClick={handleInstall} title="تثبيت التطبيق">
+                📲 تثبيت
+              </button>
+            )}
+            {installDone && <span className="pwa-installed-badge">✅ مُثبَّت</span>}
           </div>
         </div>
       </nav>
+
+      {/* ── AdSense: Top Banner (728×90 / Auto) ── */}
+      <div className="adsense-top-bar" aria-label="إعلان">
+        {/* <ins className="adsbygoogle" style={{display:'block'}} data-ad-client="ca-pub-XXXXXXXXXXXXXXXX" data-ad-slot="TOP_SLOT_ID" data-ad-format="auto" data-full-width-responsive="true"></ins> */}
+        <div className="ad-placeholder ad-top">📢 Google AdSense — Top Banner (728×90)</div>
+      </div>
 
       <div key={tab}>
         {tab === 'home'     && <HomeHub setTab={setTab} progress={progress} />}
@@ -944,8 +1289,8 @@ function App() {
 
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify({
         "@context":"https://schema.org","@type":"EducationalOrganization",
-        "name":"بيان - منصة التعلم الإسلامي","description":"منصة تعليمية إسلامية تفاعلية للشباب والأطفال",
-        "url":"https://noor-platform.com","teaches":["الإسلام","القرآن الكريم","السنة النبوية","أنبياء الله"],
+        "name":"بيان | Bayan - منصة التعلم الإسلامي","description":"منصة تعليمية إسلامية تفاعلية للشباب والأطفال",
+        "url":"https://bayan-app.com","teaches":["الإسلام","القرآن الكريم","السنة النبوية","أنبياء الله"],
         "audience":{"@type":"EducationalAudience","educationalRole":"student"}
       })}} />
     </>
